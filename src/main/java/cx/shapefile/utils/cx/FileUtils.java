@@ -6,7 +6,7 @@ import java.io.IOException;
 public class FileUtils
 {
     /**
-     文件不存在则创建文件，先创建目录
+     文件不存在则创建文件，并创建不存在的目录
      */
     public static void creatEmptyDir(File file) throws IOException
     {

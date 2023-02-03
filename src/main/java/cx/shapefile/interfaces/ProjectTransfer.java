@@ -1,10 +1,12 @@
 package cx.shapefile.interfaces;
 
-import org.locationtech.jts.geom.Geometry;
+import org.opengis.referencing.operation.MathTransform;
 
 public interface ProjectTransfer
 {
-    Geometry toProject(Geometry geometry, String startEPSG , String endEPSG) throws Exception;
+    MathTransform toProject(String startEPSG , String endEPSG) throws Exception;
 
-    Geometry transform(Geometry geometry, String startEPSG , String endEPSG) throws Exception;
+    void projectShape(String inputShp, String outputShp, String endEPSG) throws Exception;
+
+    Double[] transform(double x, double y , String startEPSG, String endEPSG) throws Exception;
 }

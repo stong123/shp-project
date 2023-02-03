@@ -5,12 +5,17 @@ import cx.shapefile.domain.Feature;
 import cx.shapefile.domain.Field;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureIterator;
+import org.geotools.feature.FeatureCollection;
 import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.ReferenceIdentifier;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 public interface ShapeDeal
 {
@@ -25,5 +30,13 @@ public interface ShapeDeal
     ArrayList<Field> setFields(HashSet<String> set, SimpleFeature feature) throws Exception;
 
     Feature setFeature(HashSet<String> set, SimpleFeature feature, Geometry geometry)throws Exception;
+
+    String getFeaturesCollectionByJson(String geoJSON) throws Exception;
+
+    String featureCollectionToShp(FeatureCollection<SimpleFeatureType, SimpleFeature> features) throws Exception;
+
+    boolean saveFeaturesToShp(List<SimpleFeature> features, SimpleFeatureType TYPE, String shpPath) throws Exception;
+
+    boolean generateCpgFile(String filePath, Charset charset) throws Exception;
 
 }
