@@ -1,6 +1,6 @@
 package cx.shapefile.impl;
 
-import cx.shapefile.interfaces.BufferAnalyse;
+import cx.shapefile.interfaces.SpatialAnalyse;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.operation.buffer.BufferOp;
 import org.locationtech.jts.operation.buffer.BufferParameters;
@@ -9,13 +9,31 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 @Component
-public class BufferAnalyseImpl implements BufferAnalyse
+public class SpatialAnalyseImpl implements SpatialAnalyse
 {
     public static final int CAP_ROUND = 1;
     public static final int CAP_FLAT = 2;
     public static final int CAP_SQUARE = 3;
 
     public static final int DEFAULT_QUADRANT_SEGMENTS = 8;
+
+    @Override
+    public Geometry spatialAnalyse(Geometry geo1, Geometry geo2, String method) throws Exception
+    {
+        switch (method)
+        {
+        case "intersection":    //交叉分析
+            return geo1.intersection(geo2);
+        case "difference":      //差异分析
+            return geo1.difference(geo2);
+        case "symDifference":   //对称差异分析
+            return geo1.symDifference(geo2);
+        case "union":           //联合分析
+            return geo1.union(geo2);
+        default:
+            throw new RuntimeException("no such method");
+        }
+    }
 
     @Override
     public Geometry pointBuffer(Geometry geometry, Double distance) throws Exception

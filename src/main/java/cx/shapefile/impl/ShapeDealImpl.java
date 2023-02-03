@@ -1,11 +1,13 @@
 package cx.shapefile.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import cx.shapefile.domain.Feature;
 import cx.shapefile.domain.Field;
 import cx.shapefile.interfaces.ShapeDeal;
-import cx.shapefile.utils.MyUtils;
 import cx.shapefile.utils.cx.GisUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.DefaultTransaction;
 import org.geotools.data.Transaction;
@@ -42,10 +44,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -53,6 +52,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 @Component
+@Slf4j
 public class ShapeDealImpl implements ShapeDeal
 {
     @Value("${shapefile.dir}")
@@ -63,7 +63,7 @@ public class ShapeDealImpl implements ShapeDeal
     {
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory(null);
         WKTReader reader = new WKTReader(geometryFactory);
-        String wkt = MyUtils.jsonToWkt(json);
+        String wkt = GisUtils.jsonToWkt(json);
         Geometry geometry = reader.read(wkt);
         return geometry;
     }
@@ -96,6 +96,59 @@ public class ShapeDealImpl implements ShapeDeal
         ShapefileDataStoreFactory factory = new ShapefileDataStoreFactory();
         ShapefileDataStore dataStore = (ShapefileDataStore) factory.createDataStore(new File(shpPath).toURI().toURL());
         return dataStore;
+    }
+
+    /**
+     * 获取Shape文件的坐标系信息,GEOGCS表示这个是地址坐标系,PROJCS则表示是平面投影坐标系
+     */
+    @Override
+    public String getCoordinateSystemWKT(String path) throws Exception
+    {
+        ShapefileDataStore shapeDataStore = getShapeDataStore(path);
+        return shapeDataStore.getSchema().getCoordinateReferenceSystem().toWKT();
+    }
+
+    @Override
+    public JSON readShpFile(String shapePath, String charset) throws Exception
+    {
+        ShapefileDataStore dataStore = null;
+        try
+        {
+            dataStore = getShapeDataStore(shapePath);
+            SimpleFeatureIterator iterator = getSimpleFeatureIterator(dataStore, charset);
+
+            JSONArray jsonArray = new JSONArray();
+            while (iterator.hasNext())
+            {
+                SimpleFeature feature = iterator.next();
+                Iterator<Property> it = feature.getProperties().iterator();
+                Map<String, Object> map = new HashMap<>();
+                while (it.hasNext())
+                {
+                    Property pro = it.next();
+                    map.put(String.valueOf(pro.getName()), String.valueOf(pro.getValue()));
+                }
+                // Feature转GeoJSON
+                FeatureJSON fjson = new FeatureJSON();
+                StringWriter writer = new StringWriter();
+                fjson.writeFeature(feature, writer);
+                jsonArray.add(JSONObject.parse(writer.toString()));
+            }
+            Map<String, Object> map = new HashMap<>();
+            map.put("features", jsonArray);
+            JSONObject jsonObject = new JSONObject(map);
+            iterator.close();
+            return jsonObject;
+        }
+        catch (Exception e)
+        {
+            log.error(e.getMessage(), e);
+        }
+        finally
+        {
+            dataStore.dispose();
+        }
+        return null;
     }
 
     /**
@@ -136,7 +189,7 @@ public class ShapeDealImpl implements ShapeDeal
             //判断outFields是不是*，
             if(set.contains("*"))
             {
-                String name = new String(property.getName().toString().getBytes("ISO-8859-1"));
+                String name = new String(property.getName().toString().getBytes("UTF-8"));
                 field.setName(name);
                 field.setAlias(name);
                 field.setId(i++);
@@ -185,7 +238,7 @@ public class ShapeDealImpl implements ShapeDeal
             {
                 //所有的字段都获取
                 HashMap<Object, Object> map = new HashMap<>();
-                map.put(new String(property.getName().toString().getBytes("ISO-8859-1")),property.getValue().toString());
+                map.put(new String(property.getName().toString().getBytes("UTF-8")),property.getValue().toString());
                 lists.add(map);
             }
             else
@@ -194,7 +247,7 @@ public class ShapeDealImpl implements ShapeDeal
                 if(set.contains(property.getName().toString()))
                 {
                     HashMap<Object, Object> map = new HashMap<>();
-                    map.put(new String(property.getName().toString().getBytes("ISO-8859-1")),property.getValue().toString());
+                    map.put(new String(property.getName().toString().getBytes("UTF-8")),property.getValue().toString());
                     lists.add(map);
                 }
             }
@@ -334,7 +387,7 @@ public class ShapeDealImpl implements ShapeDeal
         }
         catch (IOException e)
         {
-            return false;
+            log.error(e.getMessage(), e);
         }
         return true;
     }

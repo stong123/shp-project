@@ -70,12 +70,10 @@ public class ProjectTransferImpl implements ProjectTransfer
         SimpleFeatureSource fs = shapeDS.getFeatureSource(shapeDS.getTypeNames()[0]);
         CoordinateReferenceSystem crs= CRS.decode(endEPSG);
         // CoordinateReferenceSystem crs = CRS.parseWKT(strWKTMercator);
-        // 下面这行还有其他写法，根据源shape文件的simpleFeatureType可以不用retype，而直接用fs.getSchema设置
-        ds.createSchema(SimpleFeatureTypeBuilder.retype(fs.getSchema(), crs));
 
+        ds.createSchema(SimpleFeatureTypeBuilder.retype(fs.getSchema(), crs));
         // 设置writer
         FeatureWriter<SimpleFeatureType, SimpleFeature> writer = ds.getFeatureWriter(ds.getTypeNames()[0], Transaction.AUTO_COMMIT);
-
         //写记录
         SimpleFeatureIterator it = fs.getFeatures().features();
         try

@@ -3,28 +3,27 @@ package cx.shapefile.controller;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import cx.shapefile.service.CxSvrGisDeal;
-import cx.shapefile.utils.MyGeoTools;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/zgis/deal")
+@RequestMapping("/zgis")
 public class ControllerGisDeal
 {
     @Autowired
     CxSvrGisDeal cxSvrGisDeal;
 
     @PostMapping("/getShpPrj")
-    public String getPrjMessage(String shpPath)
+    public String getPrjMessage(String shpPath) throws Exception
     {
         return cxSvrGisDeal.getPrjMessage(shpPath);
     }
 
     @ResponseBody
     @PostMapping("/readShp")
-    public JSON readShpFile(String filePath, String charset)
+    public JSON readShpFile(String filePath, String charset) throws Exception
     {
         return cxSvrGisDeal.readShpFile(filePath, charset);
     }
@@ -54,7 +53,9 @@ public class ControllerGisDeal
     }
 
     @PostMapping("/geoAnalyse")
-    public JSONObject geoAnalyse(String tileName, @RequestPart("json") JSONObject scope, String method) throws Exception
+    public JSONObject geoAnalyse(@RequestParam("tileName") String tileName,
+                                 @RequestPart("json") JSONObject scope,
+                                 @RequestParam("method") String method) throws Exception
     {
         return cxSvrGisDeal.geoAnalyse(tileName,scope,method);
     }

@@ -5,11 +5,10 @@ import com.alibaba.fastjson.JSONObject;
 import cx.shapefile.domain.DisplayFieldName;
 import cx.shapefile.domain.Feature;
 import cx.shapefile.domain.Field;
-import cx.shapefile.interfaces.OverlayAnalyse;
 import cx.shapefile.interfaces.ProjectTransfer;
 import cx.shapefile.interfaces.ShapeDeal;
+import cx.shapefile.interfaces.SpatialAnalyse;
 import cx.shapefile.utils.cx.FileUtils;
-import cx.shapefile.utils.cx.GisUtils;
 import cx.shapefile.utils.cx.SvrUtils;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureIterator;
@@ -40,16 +39,16 @@ public class CxSvrGisDeal
     ProjectTransfer projectTransfer;
 
     @Autowired
-    OverlayAnalyse overlayAnalyse;
+    SpatialAnalyse spatialAnalyse;
 
-    public String getPrjMessage(String shpPath)
+    public String getPrjMessage(String shpPath) throws Exception
     {
-        return GisUtils.getCoordinateSystemWKT(shpPath);
+        return shapeDeal.getCoordinateSystemWKT(shpPath);
     }
 
-    public JSON readShpFile(String filePath, String charset)
+    public JSON readShpFile(String filePath, String charset) throws Exception
     {
-        return GisUtils.readShpFile(filePath,charset);
+        return shapeDeal.readShpFile(filePath,charset);
     }
 
     public String geoJson2Shp(String geoJson) throws Exception
@@ -81,9 +80,8 @@ public class CxSvrGisDeal
 
     public JSONObject geoAnalyse(String tileName, JSONObject scope, String method) throws Exception
     {
-        DisplayFieldName displayFieldName = new DisplayFieldName(); //存放分析结果的实体类
-        String   shpFilePath = geoWfs2Shp(tileName);
         Geometry geometry    = shapeDeal.json2Geometry(scope);
+        DisplayFieldName displayFieldName = new DisplayFieldName(); //存放分析结果的实体类
         //获取outFields中的数据并存入set中
         Object          outFields = scope.get("outFields");
         HashSet<String> set       = new HashSet<>();
@@ -93,9 +91,21 @@ public class CxSvrGisDeal
             set.add(s);
         }
 
-        ShapefileDataStore dataStore = shapeDeal.getShapeDataStore(shpFilePath);
+        String zipFilePath  = geoWfs2Shp(tileName);
+        String fileName     = FileUtils.getShortName(zipFilePath);
+        FileUtils.unzip(zipFilePath,shpFileRecourseDir+fileName);
+        File   shpDir   = new File(shpFileRecourseDir+fileName);
+        File[] subFiles = shpDir.listFiles();
+        ShapefileDataStore dataStore = null;
+        for (File subFile : subFiles)
+        {
+            if(FileUtils.endWiths(subFile.getName(),"shp"))
+            {
+                dataStore = shapeDeal.getShapeDataStore(subFile.getPath());
+                break;
+            }
+        }
         SimpleFeatureIterator featureIterator = shapeDeal.getSimpleFeatureIterator(dataStore, null);
-
         boolean flag = false;
         ArrayList<Feature> features = new ArrayList<>();
         while(featureIterator.hasNext())
@@ -113,7 +123,7 @@ public class CxSvrGisDeal
             Geometry geo = (Geometry) feature.getDefaultGeometry();
             Geometry geoIntersectGeo = geo.intersection(geo);
             //叠加分析后的图形数据
-            Geometry result = overlayAnalyse.overlayAnalyse(geoIntersectGeo,geometry,method);
+            Geometry result = spatialAnalyse.spatialAnalyse(geoIntersectGeo,geometry,method);
             if(!result.isEmpty())
             {
                 //设置相交图形的属性（文件中可直接获取的）及相交后图形的属性（周长，面积，图形）
@@ -125,7 +135,6 @@ public class CxSvrGisDeal
         //关闭文件
         featureIterator.close();
         dataStore.dispose();
-
         return (JSONObject) JSONObject.toJSON(displayFieldName);
     }
 
