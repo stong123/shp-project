@@ -19,8 +19,6 @@ import java.util.List;
 
 public interface ShapeDeal
 {
-    Geometry json2Geometry(JSONObject json) throws Exception;
-
     ReferenceIdentifier getSpatialReference(SimpleFeature feature);
 
     ShapefileDataStore getShapeDataStore(String shpPath) throws Exception;
@@ -34,8 +32,6 @@ public interface ShapeDeal
     ArrayList<Field> setFields(HashSet<String> set, SimpleFeature feature) throws Exception;
 
     Feature setFeature(HashSet<String> set, SimpleFeature feature, Geometry geometry)throws Exception;
-
-    String getFeaturesCollectionByJson(String geoJSON) throws Exception;
 
     String featureCollectionToShp(FeatureCollection<SimpleFeatureType, SimpleFeature> features) throws Exception;
 

@@ -1,6 +1,7 @@
 package cx.shapefile.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import cx.shapefile.service.CxSvrGisDeal;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,26 +10,26 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 
 @RestController
-@RequestMapping("/zgis")
+@RequestMapping("/zgis/")
 public class ControllerGisDeal
 {
     @Autowired
     CxSvrGisDeal cxSvrGisDeal;
 
-    @PostMapping("/getShpPrj")
+    @PostMapping("getShpPrj")
     public String getPrjMessage(String shpPath) throws Exception
     {
         return cxSvrGisDeal.getPrjMessage(shpPath);
     }
 
     @ResponseBody
-    @PostMapping("/readShp")
+    @PostMapping("readShp")
     public JSON readShpFile(String filePath, String charset) throws Exception
     {
         return cxSvrGisDeal.readShpFile(filePath, charset);
     }
 
-    @PostMapping("/json2shp")
+    @PostMapping("json2shp")
     public String geoJson2Shp(@RequestBody String geoJson) throws Exception
     {
         return cxSvrGisDeal.geoJson2Shp(geoJson);
@@ -40,19 +41,19 @@ public class ControllerGisDeal
         return cxSvrGisDeal.geoWfs2Shp(totalLayerName);
     }
 
-    @PostMapping("/projectShape")
+    @PostMapping("projectShape")
     public String projectShape(String shpPath,String endEPSG) throws Exception
     {
         return cxSvrGisDeal.projectShape(shpPath,endEPSG);
     }
 
-    @PostMapping("/transform")
+    @PostMapping("transform")
     public Double[] getCoordinate(double x, double y , String startEPSG, String endEPSG) throws Exception
     {
         return cxSvrGisDeal.transform(x,y,startEPSG,endEPSG);
     }
 
-    @PostMapping("/geoAnalyse")
+    @PostMapping("geoAnalyse")
     public JSONObject geoAnalyse(@RequestParam("tileName") String tileName,
                                  @RequestPart("json") JSONObject scope,
                                  @RequestParam("method") String method) throws Exception
@@ -60,4 +61,17 @@ public class ControllerGisDeal
         return cxSvrGisDeal.geoAnalyse(tileName,scope,method);
     }
 
+    @PostMapping("getAttribute")
+    @ResponseBody
+    public JSONArray getPointAttribute(@RequestBody JSONObject json) throws Exception
+    {
+        return cxSvrGisDeal.getPointAttribute(json);
+    }
+
+    @PostMapping("queryAttribute")
+    @ResponseBody
+    public JSONObject queryAttribute(String url, String layer, String exp) throws Exception
+    {
+        return cxSvrGisDeal.queryAttribute(url,layer,exp);
+    }
 }

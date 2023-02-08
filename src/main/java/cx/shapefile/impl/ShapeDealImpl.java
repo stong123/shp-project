@@ -58,16 +58,6 @@ public class ShapeDealImpl implements ShapeDeal
     @Value("${shapefile.dir}")
     private String shpFileRecourseDir;
 
-    @Override
-    public Geometry json2Geometry(JSONObject json) throws Exception
-    {
-        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory(null);
-        WKTReader reader = new WKTReader(geometryFactory);
-        String wkt = GisUtils.jsonToWkt(json);
-        Geometry geometry = reader.read(wkt);
-        return geometry;
-    }
-
     /**
      * 从SimpleFeature中获取空间坐标
      * @param feature
@@ -255,17 +245,6 @@ public class ShapeDealImpl implements ShapeDeal
         tempFeature.setAttribute(lists);
         // 要素属性信息
         return tempFeature;
-    }
-
-    @Override
-    public String getFeaturesCollectionByJson(String geoJSON) throws Exception
-    {
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(geoJSON.getBytes());
-        GeometryJSON gjson = new GeometryJSON();
-        FeatureJSON fjson = new FeatureJSON(gjson);
-        FeatureCollection<SimpleFeatureType, SimpleFeature> features = fjson.readFeatureCollection(inputStream);
-        String shpFilePath = featureCollectionToShp(features);
-        return shpFilePath;
     }
 
     @Override

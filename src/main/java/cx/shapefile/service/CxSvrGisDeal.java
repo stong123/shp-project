@@ -1,6 +1,7 @@
 package cx.shapefile.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import cx.shapefile.domain.DisplayFieldName;
 import cx.shapefile.domain.Feature;
@@ -8,21 +9,30 @@ import cx.shapefile.domain.Field;
 import cx.shapefile.interfaces.ProjectTransfer;
 import cx.shapefile.interfaces.ShapeDeal;
 import cx.shapefile.interfaces.SpatialAnalyse;
+import cx.shapefile.interfaces.SpatialSvr;
 import cx.shapefile.utils.cx.FileUtils;
 import cx.shapefile.utils.cx.SvrUtils;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureIterator;
+import org.geotools.feature.FeatureCollection;
+import org.geotools.feature.FeatureIterator;
+import org.geotools.geojson.feature.FeatureJSON;
+import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.GeometryDescriptor;
+import org.opengis.geometry.BoundingBox;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Map;
 
 @Service
 public class CxSvrGisDeal
@@ -31,15 +41,14 @@ public class CxSvrGisDeal
     private String shpFileRecourseDir;
     @Value("${geoserver.url}")
     private String URI;
-
     @Autowired
     ShapeDeal shapeDeal;
-
     @Autowired
     ProjectTransfer projectTransfer;
-
     @Autowired
     SpatialAnalyse spatialAnalyse;
+    @Autowired
+    SpatialSvr spatialSvr;
 
     public String getPrjMessage(String shpPath) throws Exception
     {
@@ -53,7 +62,9 @@ public class CxSvrGisDeal
 
     public String geoJson2Shp(String geoJson) throws Exception
     {
-        return shapeDeal.getFeaturesCollectionByJson(geoJson);
+
+        FeatureCollection<SimpleFeatureType, SimpleFeature> featuresCollection = spatialSvr.getFeaturesCollectionByJson(geoJson);
+        return shapeDeal.featureCollectionToShp(featuresCollection);
     }
 
     public String geoWfs2Shp(String totalLayerName) throws IOException
@@ -80,7 +91,7 @@ public class CxSvrGisDeal
 
     public JSONObject geoAnalyse(String tileName, JSONObject scope, String method) throws Exception
     {
-        Geometry geometry    = shapeDeal.json2Geometry(scope);
+        Geometry geometry    = spatialSvr.json2Geometry(scope);
         DisplayFieldName displayFieldName = new DisplayFieldName(); //存放分析结果的实体类
         //获取outFields中的数据并存入set中
         Object          outFields = scope.get("outFields");
@@ -160,5 +171,42 @@ public class CxSvrGisDeal
             return outPath;
         }
         return null;
+    }
+
+    public JSONArray getPointAttribute(JSONObject json) throws Exception
+    {
+        final Double minScale = 0.0002709031105;
+        String crs = json.getString("crs");
+
+        JSONObject geoJson = json.getJSONObject("geometry");
+        String coordinates = geoJson.getString("coordinates");
+        String[] coords = coordinates.substring(1, coordinates.length() - 1).split(",");
+        Double x = Double.valueOf(coords[0]);
+        Double y = Double.valueOf(coords[1]);
+        StringBuilder bboxStr = new StringBuilder();
+        bboxStr.append(x-minScale+",");
+        bboxStr.append(y-minScale+",");
+        bboxStr.append(x+minScale+",");
+        bboxStr.append(y+minScale+",");
+        bboxStr.append(crs);
+        String exp = "BBOX="+bboxStr;
+
+        JSONArray layers = json.getJSONArray("layers");
+        JSONArray result = new JSONArray();
+        for (int i = 0; i <layers.size() ; i++)
+        {
+            JSONObject jsonObject = layers.getJSONObject(i);
+            String url = jsonObject.get("url").toString();
+            String layer = jsonObject.get("layer").toString();
+
+            JSON feature = spatialSvr.getWfsFeature(url, layer,exp);
+            result.add(feature);
+        }
+        return result;
+    }
+
+    public JSONObject queryAttribute(String url, String layer, String exp) throws Exception
+    {
+        return (JSONObject) spatialSvr.getWfsFeature(url,layer,exp);
     }
 }

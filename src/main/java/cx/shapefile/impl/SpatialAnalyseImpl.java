@@ -11,12 +11,6 @@ import java.util.List;
 @Component
 public class SpatialAnalyseImpl implements SpatialAnalyse
 {
-    public static final int CAP_ROUND = 1;
-    public static final int CAP_FLAT = 2;
-    public static final int CAP_SQUARE = 3;
-
-    public static final int DEFAULT_QUADRANT_SEGMENTS = 8;
-
     @Override
     public Geometry spatialAnalyse(Geometry geo1, Geometry geo2, String method) throws Exception
     {
