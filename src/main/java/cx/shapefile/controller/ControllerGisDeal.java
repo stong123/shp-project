@@ -7,8 +7,6 @@ import cx.shapefile.service.CxSvrGisDeal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-
 @RestController
 @RequestMapping("/zgis/")
 public class ControllerGisDeal
@@ -36,9 +34,9 @@ public class ControllerGisDeal
     }
 
     @PostMapping("wfs2shp")
-    public String wfs2Shp(String totalLayerName) throws IOException
+    public String wfs2Shp(String url, String totalLayerName) throws Exception
     {
-        return cxSvrGisDeal.geoWfs2Shp(totalLayerName);
+        return cxSvrGisDeal.geoWfs2Shp(url, totalLayerName);
     }
 
     @PostMapping("projectShape")
@@ -54,11 +52,20 @@ public class ControllerGisDeal
     }
 
     @PostMapping("geoAnalyse")
-    public JSONObject geoAnalyse(@RequestParam("tileName") String tileName,
+    @ResponseBody
+    public JSONObject geoAnalyse(@RequestParam("url") String url,
+                                 @RequestParam("tileName") String tileName,
                                  @RequestPart("json") JSONObject scope,
                                  @RequestParam("method") String method) throws Exception
     {
-        return cxSvrGisDeal.geoAnalyse(tileName,scope,method);
+        return cxSvrGisDeal.geoAnalyse(url,tileName,scope,method);
+    }
+
+    @PostMapping("spatialAnalyse")
+    @ResponseBody
+    public JSONArray spatialAnalyse(@RequestBody JSONObject json) throws Exception
+    {
+        return cxSvrGisDeal.spatialAnalyse(json);
     }
 
     @PostMapping("getAttribute")

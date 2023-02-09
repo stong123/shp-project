@@ -55,7 +55,7 @@ public class GisUtils
                 JSONArray geometriesArray = jsonObject.getJSONArray("geometries");
                 // 定义一个数组装图形对象
                 int size = geometriesArray.size();
-                Geometry[] geometries=new Geometry[size];
+                Geometry[] geometries = new Geometry[size];
                 for (int i=0;i<size;i++)
                 {
                     String str = geometriesArray.get(i).toString();

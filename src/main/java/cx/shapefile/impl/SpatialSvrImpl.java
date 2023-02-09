@@ -2,43 +2,68 @@ package cx.shapefile.impl;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.parser.Feature;
 import cx.shapefile.interfaces.SpatialSvr;
 import cx.shapefile.utils.cx.GisUtils;
-import cx.shapefile.utils.cx.SvrUtils;
+import org.geotools.feature.DefaultFeatureCollection;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.geojson.feature.FeatureJSON;
 import org.geotools.geojson.geom.GeometryJSON;
 import org.geotools.geometry.jts.JTSFactoryFinder;
-import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.WKTReader;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.springframework.stereotype.Component;
-
 import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 
 @Component
 public class SpatialSvrImpl implements SpatialSvr
 {
+
     @Override
-    public JSON getWfsFeature(String url, String layerName, String exp) throws Exception
+    public FeatureCollection geoJson2Collection(String geoJson) throws Exception
     {
-        StringBuilder address = new StringBuilder();
-        address.append(url+"?");
-        address.append("service=wfs&version=2.0.0&request=GetFeature&outputFormat=json&");
-        address.append("typeNames="+layerName);
-        if (exp != null)
-        {
-            address.append("&"+exp);
+        DefaultFeatureCollection simpleFeatures = new DefaultFeatureCollection();
+        FeatureJSON featureJSON = new FeatureJSON();
+        SimpleFeature simpleFeature = null;
+        FeatureCollection featureCollection = null;
+        try {
+            simpleFeature = featureJSON.readFeature(geoJson);
+            featureCollection = featureJSON.readFeatureCollection(geoJson);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        System.out.println(address);
-        byte[] bytes = SvrUtils.getRequest(address.toString());
-        JSONObject jsonObject = (JSONObject)JSONObject.parse(bytes, 0, bytes.length, StandardCharsets.UTF_8.newDecoder(), new Feature[0]);
-        return jsonObject;
+        if (featureCollection == null || featureCollection.isEmpty()) {
+            simpleFeatures.add(simpleFeature);
+            return simpleFeatures;
+        }
+        return featureCollection;
+    }
+
+    @Override
+    public String geoServerWfs(String url, String totalLayerName, String outFormat) throws Exception
+    {
+        int    index        =   totalLayerName.indexOf(":");
+        String layerPrefix  =   totalLayerName.substring(0, index);
+        String output = null;
+        if(outFormat.equalsIgnoreCase("shape") || outFormat == "SHAPE-ZIP")
+        {
+            output = outFormatShape;
+        }
+        else if(outFormat.equalsIgnoreCase("json") || outFormat == "application/json")
+        {
+            output = outFormatJSON;
+        }
+        //通过wfs得到geoJson的完整url路径
+        StringBuilder address = new StringBuilder();
+        address.append(url + "/" + layerPrefix +"/"+ "ows?");
+        address.append("service=WFS&");
+        address.append("version=2.0.0&");
+        address.append("request=GetFeature&");
+        address.append("typeName="+totalLayerName+"&");
+        address.append("outputFormat="+output);
+        return address.toString();
     }
 
     @Override
