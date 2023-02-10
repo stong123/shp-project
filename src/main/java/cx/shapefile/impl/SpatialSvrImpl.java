@@ -44,8 +44,7 @@ public class SpatialSvrImpl implements SpatialSvr
     @Override
     public String geoServerWfs(String url, String totalLayerName, String outFormat) throws Exception
     {
-        int    index        =   totalLayerName.indexOf(":");
-        String layerPrefix  =   totalLayerName.substring(0, index);
+        String layerPrefix = totalLayerName.substring(0, totalLayerName.indexOf(":"));
         String output = null;
         if(outFormat.equalsIgnoreCase("shape") || outFormat == "SHAPE-ZIP")
         {
@@ -55,9 +54,9 @@ public class SpatialSvrImpl implements SpatialSvr
         {
             output = outFormatJSON;
         }
-        //通过wfs得到geoJson的完整url路径
+        //wfs完整url路径
         StringBuilder address = new StringBuilder();
-        address.append(url + "/" + layerPrefix +"/"+ "ows?");
+        address.append(url + "/" + layerPrefix +"/"+ "wfs?");
         address.append("service=WFS&");
         address.append("version=2.0.0&");
         address.append("request=GetFeature&");
@@ -65,6 +64,20 @@ public class SpatialSvrImpl implements SpatialSvr
         address.append("outputFormat="+output);
         return address.toString();
     }
+
+    @Override
+    public String geoServerWms(JSONObject message) throws Exception
+    {
+        if(message.containsKey("REQUEST")){
+            String request = message.getString("REQUEST");
+            if(request.equalsIgnoreCase("GetFeatureInfo")){
+                //调用返回GetFeatureInfo的url的方法
+            }
+        }
+
+        return null;
+    }
+
 
     @Override
     public Geometry json2Geometry(JSON json) throws Exception

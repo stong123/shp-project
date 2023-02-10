@@ -195,6 +195,45 @@ public class CxSvrGisDeal
         return null;
     }
 
+    public JSONArray getWmsFeatureInfo(JSONObject json) throws Exception
+    {
+        String BBOX = json.getString("BBOX");
+        JSONArray layers = json.getJSONArray("layers");
+        JSONArray result = new JSONArray();
+        for (int i = 0; i < layers.size() ; i++)
+        {
+            JSONObject jsonObject = layers.getJSONObject(i);
+            String url = jsonObject.getString("url");
+            String layer = jsonObject.getString("layer");
+            String WIDTH = jsonObject.getString("WIDTH");
+            String HEIGHT = jsonObject.getString("HEIGHT");
+            String X = jsonObject.getString("X");
+            String Y = jsonObject.getString("Y");
+            String layerPrefix = layer.substring(0, layer.indexOf(":"));
+            StringBuilder address = new StringBuilder(url + "/" + layerPrefix +"/"+ "wms?");
+            address.append("service=WMS&");
+            address.append("version=1.1.1&");
+            address.append("request=GetFeatureInfo&");
+            address.append("INFO_FORMAT=application/json&");
+            address.append("WIDTH="+WIDTH+"&");
+            address.append("HEIGHT="+HEIGHT+"&");
+            address.append("X="+X+"&");
+            address.append("Y="+Y+"&");
+            address.append("BBOX="+BBOX+"&");
+            address.append("Y="+Y+"&");
+            address.append("LAYERS="+layer+"&");
+            address.append("QUERY_LAYERS="+layer);
+            System.out.println(address);
+            byte[] bytes = SvrUtils.getRequest(address.toString());
+            JSONObject pointSite = (JSONObject)JSONObject.parse(bytes, 0, bytes.length, StandardCharsets.UTF_8.newDecoder(), new com.alibaba.fastjson.parser.Feature[0]);
+            result.add(pointSite);
+        }
+        return result;
+    }
+
+    /**
+     * 根据wfs查询结果
+     */
     public JSONArray getPointAttribute(JSONObject json) throws Exception
     {
         String bbox = json.getString("BBOX");
