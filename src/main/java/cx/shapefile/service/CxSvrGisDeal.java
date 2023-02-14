@@ -17,6 +17,9 @@ import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -236,7 +239,12 @@ public class CxSvrGisDeal
      */
     public JSONArray getPointAttribute(JSONObject json) throws Exception
     {
-        String bbox = json.getString("BBOX");
+        final Double scale = 0.027;       //设0.1为wfs查询的误差范围
+        String coord = json.getString("coordinates");
+        String[] split = coord.substring(1, coord.length() - 1).split(",");
+        Double x = Double.valueOf(split[0]);
+        Double y = Double.valueOf(split[1]);
+        String bbox = (x-scale)+","+(y-scale)+","+(x+scale)+","+(y+scale);
         String crs = json.getString("crs");
         String exp = "BBOX="+bbox+","+crs;
         JSONArray layers = json.getJSONArray("layers");

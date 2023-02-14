@@ -2,5 +2,3 @@ server:
   port: 8888
 shapefile:
   dir: D:/zgis/geotools/shapefiles/
-geoserver:
-  url: http://localhost:8080/geoserver

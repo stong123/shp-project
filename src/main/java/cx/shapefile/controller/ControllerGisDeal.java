@@ -72,7 +72,7 @@ public class ControllerGisDeal
     @ResponseBody
     public JSONArray getPointAttribute(@RequestBody JSONObject json) throws Exception
     {
-        return cxSvrGisDeal.getWmsFeatureInfo(json);
+        return cxSvrGisDeal.getPointAttribute(json);
     }
 
     @PostMapping("queryAttribute")

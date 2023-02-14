@@ -179,7 +179,7 @@ public class ShapeDealImpl implements ShapeDeal
             //判断outFields是不是*，
             if(set.contains("*"))
             {
-                String name = new String(property.getName().toString().getBytes("ISO-8859-1"));
+                String name = new String(property.getName().toString().getBytes("UTF-8"));
                 field.setName(name);
                 field.setAlias(name);
                 field.setId(i++);
@@ -192,7 +192,7 @@ public class ShapeDealImpl implements ShapeDeal
                 if(set.contains(property.getName().toString()))
                 {
                     //设置fields得name以ISO-8859-1编码输出
-                    String name = new String(property.getName().toString().getBytes("ISO-8859-1"));
+                    String name = new String(property.getName().toString().getBytes("UTF-8"));
                     field.setName(name);
                     field.setAlias(name);
                     field.setId(i++);

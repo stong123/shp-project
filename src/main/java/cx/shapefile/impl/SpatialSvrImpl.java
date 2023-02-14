@@ -74,7 +74,6 @@ public class SpatialSvrImpl implements SpatialSvr
                 //调用返回GetFeatureInfo的url的方法
             }
         }
-
         return null;
     }
 

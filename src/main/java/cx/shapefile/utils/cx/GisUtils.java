@@ -22,7 +22,6 @@ public class GisUtils
     {
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory( null );
         WKTReader reader = new WKTReader( geometryFactory );
-        String json = null;
         JSONObject jsonObject=new JSONObject();
         try
         {
@@ -30,8 +29,7 @@ public class GisUtils
             StringWriter writer = new StringWriter();
             GeometryJSON geometryJSON=new GeometryJSON();
             geometryJSON.write(geometry,writer);
-            json = writer.toString();
-            jsonObject = JSONObject.parseObject(json);
+            jsonObject = JSONObject.parseObject(writer.toString());
         }
         catch (Exception e)
         {
