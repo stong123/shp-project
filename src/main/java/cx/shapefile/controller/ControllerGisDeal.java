@@ -53,19 +53,19 @@ public class ControllerGisDeal
 
     @PostMapping("geoAnalyse")
     @ResponseBody
-    public JSONObject geoAnalyse(@RequestParam("url") String url,
+    public JSONObject geometryAnalyseByURl(@RequestParam("url") String url,
                                  @RequestParam("tileName") String tileName,
                                  @RequestPart("json") JSONObject scope,
                                  @RequestParam("method") String method) throws Exception
     {
-        return cxSvrGisDeal.geoAnalyse(url,tileName,scope,method);
+        return cxSvrGisDeal.geometryAnalyseByURl(url,tileName,scope,method);
     }
 
     @PostMapping("spatialAnalyse")
     @ResponseBody
-    public JSONArray spatialAnalyse(@RequestBody JSONObject json) throws Exception
+    public JSONArray geometryAnalyseByJSON(@RequestBody JSONObject json) throws Exception
     {
-        return cxSvrGisDeal.spatialAnalyse(json);
+        return cxSvrGisDeal.geometryAnalyseByJSON(json);
     }
 
     @PostMapping("getAttribute")

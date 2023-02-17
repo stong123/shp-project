@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 @Data
-public class Attribute {
+public class Attribute
+{
     ArrayList<HashMap<Object,Object>> list;
-
 }

@@ -5,7 +5,8 @@ import lombok.Data;
 import java.util.ArrayList;
 
 @Data
-public class DisplayFieldName {
+public class DisplayFieldName
+{
     private ArrayList<Feature> features;
 //    private FieldAliases fieldAliases;
     private ArrayList<Field> fields;

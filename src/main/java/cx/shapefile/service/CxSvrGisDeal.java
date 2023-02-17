@@ -17,9 +17,6 @@ import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.FeatureIterator;
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.MultiPolygon;
-import org.locationtech.jts.geom.Polygon;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,14 +26,12 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashSet;
 
 @Service
 public class CxSvrGisDeal
 {
     @Value("${shapefile.dir}")
     private String shpFileRecourseDir;
-
     @Autowired
     ShapeDeal shapeDeal;
     @Autowired
@@ -58,12 +53,11 @@ public class CxSvrGisDeal
 
     public String geoJson2Shp(String geoJson) throws Exception
     {
-
         FeatureCollection<SimpleFeatureType, SimpleFeature> featuresCollection = spatialSvr.getFeaturesCollectionByJson(geoJson);
         return shapeDeal.featureCollectionToShp(featuresCollection);
     }
 
-    public JSONArray spatialAnalyse(JSONObject json) throws Exception
+    public JSONArray geometryAnalyseByJSON(JSONObject json) throws Exception
     {
         JSONArray jsonArrayResult = new JSONArray();
         JSONObject scopeJson = json.getJSONObject("geometry");
@@ -71,64 +65,23 @@ public class CxSvrGisDeal
         JSONArray layers = json.getJSONArray("layers");
         for (int i = 0; i < layers.size() ; i++)
         {
-            DisplayFieldName displayFieldName = new DisplayFieldName(); //存放分析结果的实体类
             JSONObject jsonObject = layers.getJSONObject(i);
-            String url = jsonObject.get("url").toString();
+            String url   = jsonObject.get("url").toString();
             String layer = jsonObject.get("layer").toString();
             JSONObject geoJson = getWfsFeature(url, layer, null);
             FeatureCollection featureCollection = spatialSvr.geoJson2Collection(geoJson.toString());
             FeatureIterator featureIterator = featureCollection.features();
-
-            ArrayList<Feature> features = new ArrayList<>();
-            HashSet<String> set = new HashSet<>();
-            set.add("*");
-            boolean flag = false;
-            while(featureIterator.hasNext())
-            {
-                SimpleFeature feature = (SimpleFeature) featureIterator.next();
-                if(!flag)
-                {
-                    //如果是第一次进入就获取该文件的中文坐标，文件内的属性。
-                    ArrayList<Field> fields = shapeDeal.setFields(set, feature);
-                    displayFieldName.setFields(fields);
-                    String spatialReference = String.valueOf(shapeDeal.getSpatialReference(feature));
-                    displayFieldName.setSpatialReference(spatialReference);
-                    flag = true;
-                }
-                Geometry geo = (Geometry) feature.getDefaultGeometry();
-                Geometry geoIntersectGeo = geo.intersection(geo);
-                //叠加分析后的图形数据
-                Geometry result = spatialAnalyse.spatialAnalyse(geoIntersectGeo,scopeGeometry,SpatialAnalyse.Intersection);
-                if(!result.isEmpty())
-                {
-                    //设置相交图形的属性（文件中可直接获取的）及相交后图形的属性（周长，面积，图形）
-                    Feature feature1 = shapeDeal.setFeature(set, feature, result);
-                    features.add(feature1);
-                }
-            }
-            displayFieldName.setFeatures(features);
-            //关闭文件
-            featureIterator.close();
-
-            jsonArrayResult.add(displayFieldName);
+            JSON aResult = spatialSvr.geometryAnalyse(featureIterator, scopeGeometry);
+            jsonArrayResult.add(aResult);
         }
         return jsonArrayResult;
     }
 
-    public JSONObject geoAnalyse(String url, String tileName, JSONObject scope, String method) throws Exception
+    public JSONObject geometryAnalyseByURl(String url, String tileName, JSONObject scope, String method) throws Exception
     {
-        Geometry geometry    = spatialSvr.json2Geometry(scope);
-        DisplayFieldName displayFieldName = new DisplayFieldName(); //存放分析结果的实体类
-        //获取outFields中的数据并存入set中
-        Object          outFields = scope.get("outFields");
-        HashSet<String> set       = new HashSet<>();
-        String[]        split     = outFields.toString().split(",");
-        for (String s : split)
-        {
-            set.add(s);
-        }
-        String zipFilePath  = geoWfs2Shp(url, tileName);
-        String fileName     = FileUtils.getShortName(zipFilePath);
+        Geometry scopeGeometry = spatialSvr.json2Geometry(scope);
+        String zipFilePath     = geoWfs2Shp(url, tileName);
+        String fileName        = FileUtils.getShortName(zipFilePath);
         FileUtils.unzip(zipFilePath,shpFileRecourseDir+fileName);
         File   shpDir   = new File(shpFileRecourseDir+fileName);
         File[] subFiles = shpDir.listFiles();
@@ -142,36 +95,9 @@ public class CxSvrGisDeal
             }
         }
         SimpleFeatureIterator featureIterator = shapeDeal.getSimpleFeatureIterator(dataStore, null);
-        boolean flag = false;
-        ArrayList<Feature> features = new ArrayList<>();
-        while(featureIterator.hasNext())
-        {
-            SimpleFeature feature = featureIterator.next();
-            if(!flag)
-            {
-                //如果是第一次进入就获取该文件的中文坐标，文件内的属性。
-                ArrayList<Field> fields = shapeDeal.setFields(set, feature);
-                displayFieldName.setFields(fields);
-                String spatialReference = String.valueOf(shapeDeal.getSpatialReference(feature));
-                displayFieldName.setSpatialReference(spatialReference);
-                flag = true;
-            }
-            Geometry geo = (Geometry) feature.getDefaultGeometry();
-            Geometry geoIntersectGeo = geo.intersection(geo);
-            //叠加分析后的图形数据
-            Geometry result = spatialAnalyse.spatialAnalyse(geoIntersectGeo,geometry,method);
-            if(!result.isEmpty())
-            {
-                //设置相交图形的属性（文件中可直接获取的）及相交后图形的属性（周长，面积，图形）
-                Feature feature1 = shapeDeal.setFeature(set, feature, result);
-                features.add(feature1);
-            }
-        }
-        displayFieldName.setFeatures(features);
-        //关闭文件
-        featureIterator.close();
+        JSON analyse = spatialSvr.geometryAnalyse(featureIterator, scopeGeometry);
         dataStore.dispose();
-        return (JSONObject) JSONObject.toJSON(displayFieldName);
+        return (JSONObject) analyse;
     }
 
     public Double[] transform(double x, double y, String startEPSG, String endEPSG) throws Exception
@@ -185,7 +111,6 @@ public class CxSvrGisDeal
         if(shpFile.exists())
         {
             String shpFileName = shpFile.getName();
-
             File dir = new File(shpFileRecourseDir+System.currentTimeMillis());
             if(!dir.exists())
             {
@@ -252,9 +177,8 @@ public class CxSvrGisDeal
         for (int i = 0; i < layers.size() ; i++)
         {
             JSONObject jsonObject = layers.getJSONObject(i);
-            String url = jsonObject.get("url").toString();
+            String url   = jsonObject.get("url").toString();
             String layer = jsonObject.get("layer").toString();
-
             JSON feature = getWfsFeature(url,layer,exp);
             result.add(feature);
         }

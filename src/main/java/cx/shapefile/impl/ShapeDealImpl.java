@@ -25,13 +25,8 @@ import org.geotools.feature.simple.SimpleFeatureTypeImpl;
 import org.geotools.feature.type.GeometryDescriptorImpl;
 import org.geotools.feature.type.GeometryTypeImpl;
 import org.geotools.geojson.feature.FeatureJSON;
-import org.geotools.geojson.geom.GeometryJSON;
-import org.geotools.geometry.jts.JTSFactoryFinder;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.io.WKTReader;
-import org.opengis.feature.GeometryAttribute;
 import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -39,8 +34,6 @@ import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.AttributeType;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.GeometryType;
-import org.opengis.referencing.ReferenceIdentifier;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -57,23 +50,6 @@ public class ShapeDealImpl implements ShapeDeal
 {
     @Value("${shapefile.dir}")
     private String shpFileRecourseDir;
-
-    /**
-     * 从SimpleFeature中获取空间坐标
-     * @param feature
-     * @return
-     * @throws Exception
-     */
-    @Override
-    public ReferenceIdentifier getSpatialReference(SimpleFeature feature)
-    {
-        GeometryAttribute geometryAttribute = feature.getDefaultGeometryProperty();
-        //获取坐标参考系信息
-        CoordinateReferenceSystem coordinateReferenceSystem = geometryAttribute.getDescriptor().getCoordinateReferenceSystem();
-        //获取空间坐标
-        ReferenceIdentifier identifier = coordinateReferenceSystem.getCoordinateSystem().getName();
-        return identifier;
-    }
 
     /**
      * 获取shape的数据存储对象
@@ -164,10 +140,10 @@ public class ShapeDealImpl implements ShapeDeal
     }
 
     /**
-     * 获取feature中的属性，并根据set中包换的字段设置field
+     * 获取feature中的全部属性
      */
     @Override
-    public ArrayList<Field> setFields(HashSet<String> set, SimpleFeature feature) throws Exception
+    public ArrayList<Field> setFields(SimpleFeature feature) throws Exception
     {
         // 要素属性信息，名称，值，类型
         List<Property> propertyList = (List<Property>) feature.getValue();
@@ -177,36 +153,19 @@ public class ShapeDealImpl implements ShapeDeal
         {
             Field field = new Field();
             //判断outFields是不是*，
-            if(set.contains("*"))
-            {
-                String name = new String(property.getName().toString().getBytes("UTF-8"));
-                field.setName(name);
-                field.setAlias(name);
-                field.setId(i++);
-                field.setType(property.getType().toString());
-                field.setLength(property.getType().getRestrictions().toString().trim());
-                fields.add(field);
-            }
-            else
-            {
-                if(set.contains(property.getName().toString()))
-                {
-                    //设置fields得name以ISO-8859-1编码输出
-                    String name = new String(property.getName().toString().getBytes("UTF-8"));
-                    field.setName(name);
-                    field.setAlias(name);
-                    field.setId(i++);
-                    field.setType(property.getType().toString());
-                    field.setLength(property.getType().getRestrictions().toString().trim());
-                    fields.add(field);
-                }
-            }
+            String name = new String(property.getName().toString().getBytes("UTF-8"));
+            field.setName(name);
+            field.setAlias(name);
+            field.setId(i++);
+            field.setType(property.getType().toString());
+            field.setLength(property.getType().getRestrictions().toString().trim());
+            fields.add(field);
         }
         return fields;
     }
 
     @Override
-    public Feature setFeature(HashSet<String> set, SimpleFeature feature, Geometry geometry) throws Exception
+    public Feature setFeature(SimpleFeature feature, Geometry geometry) throws Exception
     {
         Feature tempFeature = new Feature();
         JSONObject jsonObject = GisUtils.wktToJson(geometry.toText());
@@ -223,24 +182,10 @@ public class ShapeDealImpl implements ShapeDeal
             {
                 continue;
             }
-            //判断outFields是不是*，
-            if (set.contains("*"))
-            {
-                //所有的字段都获取
-                HashMap<Object, Object> map = new HashMap<>();
-                map.put(new String(property.getName().toString().getBytes("UTF-8")),property.getValue().toString());
-                lists.add(map);
-            }
-            else
-            {
-                //获取outFields内的字段
-                if(set.contains(property.getName().toString()))
-                {
-                    HashMap<Object, Object> map = new HashMap<>();
-                    map.put(new String(property.getName().toString().getBytes("UTF-8")),property.getValue().toString());
-                    lists.add(map);
-                }
-            }
+            //所有的字段都获取
+            HashMap<Object, Object> map = new HashMap<>();
+            map.put(new String(property.getName().toString().getBytes("UTF-8")),property.getValue().toString());
+            lists.add(map);
         }
         tempFeature.setAttribute(lists);
         // 要素属性信息
@@ -328,8 +273,7 @@ public class ShapeDealImpl implements ShapeDeal
             params.put("url", shpFile.toURI().toURL());
             params.put("create spatial index", Boolean.TRUE);
 
-            ShapefileDataStore newDataStore =
-                    (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
+            ShapefileDataStore newDataStore = (ShapefileDataStore) dataStoreFactory.createNewDataStore(params);
             newDataStore.setCharset(StandardCharsets.UTF_8);
 
             newDataStore.createSchema(TYPE);

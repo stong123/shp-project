@@ -1,7 +1,6 @@
 package cx.shapefile.interfaces;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import cx.shapefile.domain.Feature;
 import cx.shapefile.domain.Field;
 import org.geotools.data.shapefile.ShapefileDataStore;
@@ -10,17 +9,12 @@ import org.geotools.feature.FeatureCollection;
 import org.locationtech.jts.geom.Geometry;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.referencing.ReferenceIdentifier;
-
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 
 public interface ShapeDeal
 {
-    ReferenceIdentifier getSpatialReference(SimpleFeature feature);
-
     ShapefileDataStore getShapeDataStore(String shpPath) throws Exception;
 
     String getCoordinateSystemWKT(String path) throws Exception;
@@ -29,9 +23,9 @@ public interface ShapeDeal
 
     SimpleFeatureIterator getSimpleFeatureIterator(ShapefileDataStore dataStore, String charset) throws Exception;
 
-    ArrayList<Field> setFields(HashSet<String> set, SimpleFeature feature) throws Exception;
+    ArrayList<Field> setFields(SimpleFeature feature) throws Exception;
 
-    Feature setFeature(HashSet<String> set, SimpleFeature feature, Geometry geometry)throws Exception;
+    Feature setFeature(SimpleFeature feature, Geometry geometry)throws Exception;
 
     String featureCollectionToShp(FeatureCollection<SimpleFeatureType, SimpleFeature> features) throws Exception;
 

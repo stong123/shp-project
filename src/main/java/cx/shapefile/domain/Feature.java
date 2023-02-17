@@ -7,7 +7,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 @Data
-public class Feature {
+public class Feature
+{
     ArrayList<HashMap<Object,Object>> attribute;
     private double circumference;   //周长
     private double area;

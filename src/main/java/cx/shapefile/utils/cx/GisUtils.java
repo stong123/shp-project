@@ -21,7 +21,7 @@ public class GisUtils
     public static JSONObject wktToJson(String wkt)
     {
         GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory( null );
-        WKTReader reader = new WKTReader( geometryFactory );
+        WKTReader reader = new WKTReader(geometryFactory);
         JSONObject jsonObject=new JSONObject();
         try
         {
