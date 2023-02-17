@@ -44,7 +44,7 @@ public class SpatialSvrImpl implements SpatialSvr
      * @throws Exception
      */
     @Override
-    public JSON geometryAnalyse(FeatureIterator featureIterator, Geometry scope) throws Exception
+    public JSON geoSpatialAnalyse(FeatureIterator featureIterator, Geometry scope) throws Exception
     {
         DisplayFieldName displayField = new DisplayFieldName();
         ArrayList<Feature> features = new ArrayList<>();

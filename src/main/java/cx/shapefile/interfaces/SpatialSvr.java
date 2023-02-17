@@ -16,7 +16,7 @@ public interface SpatialSvr
 
     String outFormatJSON = "application/json";
 
-    public JSON geometryAnalyse(FeatureIterator featureIterator, Geometry scope) throws Exception;
+    public JSON geoSpatialAnalyse(FeatureIterator featureIterator, Geometry scope) throws Exception;
 
     ReferenceIdentifier getSpatialReference(SimpleFeature feature)throws Exception;
 

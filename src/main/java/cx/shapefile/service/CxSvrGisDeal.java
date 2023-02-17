@@ -10,6 +10,7 @@ import cx.shapefile.interfaces.ProjectTransfer;
 import cx.shapefile.interfaces.ShapeDeal;
 import cx.shapefile.interfaces.SpatialAnalyse;
 import cx.shapefile.interfaces.SpatialSvr;
+import cx.shapefile.pojo.CxContext;
 import cx.shapefile.utils.cx.FileUtils;
 import cx.shapefile.utils.cx.SvrUtils;
 import org.geotools.data.shapefile.ShapefileDataStore;
@@ -36,6 +37,7 @@ public class CxSvrGisDeal
     ShapeDeal shapeDeal;
     @Autowired
     ProjectTransfer projectTransfer;
+
     @Autowired
     SpatialAnalyse spatialAnalyse;
     @Autowired
@@ -59,33 +61,38 @@ public class CxSvrGisDeal
 
     public JSONArray geometryAnalyseByJSON(JSONObject json) throws Exception
     {
-        JSONArray jsonArrayResult = new JSONArray();
-        JSONObject scopeJson = json.getJSONObject("geometry");
-        Geometry scopeGeometry = spatialSvr.json2Geometry(scopeJson);
-        JSONArray layers = json.getJSONArray("layers");
-        for (int i = 0; i < layers.size() ; i++)
+        JSONArray   results       = new JSONArray();
+        JSONArray   layers        = json.getJSONArray(CxContext.LAYERS);         // 待分析的图层
+        JSONObject  scopeJson     = json.getJSONObject(CxContext.GEOMETRY);      // 画出的范围
+        Geometry    scopeGeometry = spatialSvr.json2Geometry(scopeJson);
+        for (int i = 0; i < layers.size(); i++)
         {
-            JSONObject jsonObject = layers.getJSONObject(i);
-            String url   = jsonObject.get("url").toString();
-            String layer = jsonObject.get("layer").toString();
+            // 从json中读取url和layer并生成geoJSON数据
+            JSONObject item    = layers.getJSONObject(i);
+            String     url     = item.get(CxContext.URL).toString();
+            String     layer   = item.get(CxContext.LAYER).toString();
             JSONObject geoJson = getWfsFeature(url, layer, null);
+
+            // 根据geoJSON拿到feature的遍历器，进行空间分析
             FeatureCollection featureCollection = spatialSvr.geoJson2Collection(geoJson.toString());
-            FeatureIterator featureIterator = featureCollection.features();
-            JSON aResult = spatialSvr.geometryAnalyse(featureIterator, scopeGeometry);
-            jsonArrayResult.add(aResult);
+            FeatureIterator   featureIterator   = featureCollection.features();
+            JSON aResult = spatialSvr.geoSpatialAnalyse(featureIterator, scopeGeometry);
+            results.add(aResult);
         }
-        return jsonArrayResult;
+        return results;
     }
 
     public JSONObject geometryAnalyseByURl(String url, String tileName, JSONObject scope, String method) throws Exception
     {
+        ShapefileDataStore dataStore = null;
         Geometry scopeGeometry = spatialSvr.json2Geometry(scope);
         String zipFilePath     = geoWfs2Shp(url, tileName);
+
+        //对zip文件解压，并读取其中.shp文件
         String fileName        = FileUtils.getShortName(zipFilePath);
         FileUtils.unzip(zipFilePath,shpFileRecourseDir+fileName);
         File   shpDir   = new File(shpFileRecourseDir+fileName);
         File[] subFiles = shpDir.listFiles();
-        ShapefileDataStore dataStore = null;
         for (File subFile : subFiles)
         {
             if(FileUtils.endWiths(subFile.getName(),"shp"))
@@ -94,10 +101,12 @@ public class CxSvrGisDeal
                 break;
             }
         }
+
+        //拿到feature的遍历器，并进行空间分析
         SimpleFeatureIterator featureIterator = shapeDeal.getSimpleFeatureIterator(dataStore, null);
-        JSON analyse = spatialSvr.geometryAnalyse(featureIterator, scopeGeometry);
+        JSON result = spatialSvr.geoSpatialAnalyse(featureIterator, scopeGeometry);
         dataStore.dispose();
-        return (JSONObject) analyse;
+        return (JSONObject) result;
     }
 
     public Double[] transform(double x, double y, String startEPSG, String endEPSG) throws Exception
@@ -121,42 +130,6 @@ public class CxSvrGisDeal
             return outPath;
         }
         return null;
-    }
-
-    public JSONArray getWmsFeatureInfo(JSONObject json) throws Exception
-    {
-        String BBOX = json.getString("BBOX");
-        JSONArray layers = json.getJSONArray("layers");
-        JSONArray result = new JSONArray();
-        for (int i = 0; i < layers.size() ; i++)
-        {
-            JSONObject jsonObject = layers.getJSONObject(i);
-            String url = jsonObject.getString("url");
-            String layer = jsonObject.getString("layer");
-            String WIDTH = jsonObject.getString("WIDTH");
-            String HEIGHT = jsonObject.getString("HEIGHT");
-            String X = jsonObject.getString("X");
-            String Y = jsonObject.getString("Y");
-            String layerPrefix = layer.substring(0, layer.indexOf(":"));
-            StringBuilder address = new StringBuilder(url + "/" + layerPrefix +"/"+ "wms?");
-            address.append("service=WMS&");
-            address.append("version=1.1.1&");
-            address.append("request=GetFeatureInfo&");
-            address.append("INFO_FORMAT=application/json&");
-            address.append("WIDTH="+WIDTH+"&");
-            address.append("HEIGHT="+HEIGHT+"&");
-            address.append("X="+X+"&");
-            address.append("Y="+Y+"&");
-            address.append("BBOX="+BBOX+"&");
-            address.append("Y="+Y+"&");
-            address.append("LAYERS="+layer+"&");
-            address.append("QUERY_LAYERS="+layer);
-            System.out.println(address);
-            byte[] bytes = SvrUtils.getRequest(address.toString());
-            JSONObject pointSite = (JSONObject)JSONObject.parse(bytes, 0, bytes.length, StandardCharsets.UTF_8.newDecoder(), new com.alibaba.fastjson.parser.Feature[0]);
-            result.add(pointSite);
-        }
-        return result;
     }
 
     /**
@@ -219,6 +192,48 @@ public class CxSvrGisDeal
         byte[] bytes = SvrUtils.getRequest(address.toString());
         JSONObject jsonObject = (JSONObject)JSONObject.parse(bytes, 0, bytes.length, StandardCharsets.UTF_8.newDecoder(), new com.alibaba.fastjson.parser.Feature[0]);
         return jsonObject;
+    }
+
+    /**
+     * 调用geoserver的wms服务，获取BBOX中的要素信息
+     * @param json
+     * @return
+     * @throws Exception
+     */
+    public JSONArray getWmsFeatureInfo(JSONObject json) throws Exception
+    {
+        String BBOX = json.getString("BBOX");
+        JSONArray layers = json.getJSONArray("layers");
+        JSONArray result = new JSONArray();
+        for (int i = 0; i < layers.size() ; i++)
+        {
+            JSONObject jsonObject = layers.getJSONObject(i);
+            String url = jsonObject.getString("url");
+            String layer = jsonObject.getString("layer");
+            String WIDTH = jsonObject.getString("WIDTH");
+            String HEIGHT = jsonObject.getString("HEIGHT");
+            String X = jsonObject.getString("X");
+            String Y = jsonObject.getString("Y");
+            String layerPrefix = layer.substring(0, layer.indexOf(":"));
+            StringBuilder address = new StringBuilder(url + "/" + layerPrefix +"/"+ "wms?");
+            address.append("service=WMS&");
+            address.append("version=1.1.1&");
+            address.append("request=GetFeatureInfo&");
+            address.append("INFO_FORMAT=application/json&");
+            address.append("WIDTH="+WIDTH+"&");
+            address.append("HEIGHT="+HEIGHT+"&");
+            address.append("X="+X+"&");
+            address.append("Y="+Y+"&");
+            address.append("BBOX="+BBOX+"&");
+            address.append("Y="+Y+"&");
+            address.append("LAYERS="+layer+"&");
+            address.append("QUERY_LAYERS="+layer);
+            System.out.println(address);
+            byte[] bytes = SvrUtils.getRequest(address.toString());
+            JSONObject pointSite = (JSONObject)JSONObject.parse(bytes, 0, bytes.length, StandardCharsets.UTF_8.newDecoder(), new com.alibaba.fastjson.parser.Feature[0]);
+            result.add(pointSite);
+        }
+        return result;
     }
 
 }

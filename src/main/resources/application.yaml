@@ -5,7 +5,7 @@ shapefile:
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://49.235.79.94:3306/geom
+    url: jdbc:mysql://49.235.79.94:3306/geom?characterEncoding=utf-8
     username: root
     password: root
 
