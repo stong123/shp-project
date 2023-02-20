@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "cx.shapefile.Mapper.PostGisDBMapper">
+    <select id="queryGeom" resultType="Ynzd">
+        SELECT village , village_group , land_no_survey ,land_type_name1 , land_type_code , spot_area ,
+               confer_area , area_unit , owner , ST_AsText(geom) as geom FROM gisynzd_dev.le_survey_land
+    </select>
+</mapper>

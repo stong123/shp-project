@@ -4,12 +4,17 @@ shapefile:
   dir: D:/zgis/geotools/shapefiles/
 spring:
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://49.235.79.94:3306/geom?characterEncoding=utf-8
-    username: root
-    password: root
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+#    url: jdbc:mysql://49.235.79.94:3306/geom?characterEncoding=utf-8
+#    username: root
+#    password: root
+#        postgis:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://192.168.2.218:5433/gis?useUnicode=true
+    username: postgres
+    password: zbcxadmin
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   #目的是为了省略resultType里的代码量
-  type-aliases-package: cx.shapefile
+  type-aliases-package: cx.shapefile.pojo

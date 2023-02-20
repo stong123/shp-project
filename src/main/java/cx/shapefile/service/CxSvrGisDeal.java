@@ -3,16 +3,12 @@ package cx.shapefile.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import cx.shapefile.domain.DisplayFieldName;
-import cx.shapefile.domain.Feature;
-import cx.shapefile.domain.Field;
 import cx.shapefile.interfaces.ProjectTransfer;
 import cx.shapefile.interfaces.ShapeDeal;
 import cx.shapefile.interfaces.SpatialAnalyse;
 import cx.shapefile.interfaces.SpatialSvr;
 import cx.shapefile.pojo.CxContext;
 import cx.shapefile.utils.cx.FileUtils;
-import cx.shapefile.utils.cx.SvrUtils;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.feature.FeatureCollection;
@@ -23,10 +19,11 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 
 @Service
 public class CxSvrGisDeal
@@ -42,6 +39,9 @@ public class CxSvrGisDeal
     SpatialAnalyse spatialAnalyse;
     @Autowired
     SpatialSvr spatialSvr;
+
+    @Autowired
+    RestTemplate restTemplate;
 
     public String getPrjMessage(String shpPath) throws Exception
     {
@@ -167,7 +167,8 @@ public class CxSvrGisDeal
     public String geoWfs2Shp(String url, String totalLayerName) throws Exception
     {
         String wfsURL = spatialSvr.geoServerWfs(url, totalLayerName, "shape");
-        byte[] zip = SvrUtils.getRequest(wfsURL);
+//        byte[] zip = SvrUtils.getRequest(wfsURL);
+        byte[] zip = restTemplate.getForObject(wfsURL, byte[].class);
         String layerName = totalLayerName.substring(totalLayerName.indexOf(":") + 1);
         File file = null;
         if(zip != null)
@@ -189,7 +190,7 @@ public class CxSvrGisDeal
         {
             address.append("&"+exp);
         }
-        byte[] bytes = SvrUtils.getRequest(address.toString());
+        byte[] bytes = restTemplate.getForObject(address.toString(), byte[].class);
         JSONObject jsonObject = (JSONObject)JSONObject.parse(bytes, 0, bytes.length, StandardCharsets.UTF_8.newDecoder(), new com.alibaba.fastjson.parser.Feature[0]);
         return jsonObject;
     }
@@ -228,8 +229,7 @@ public class CxSvrGisDeal
             address.append("Y="+Y+"&");
             address.append("LAYERS="+layer+"&");
             address.append("QUERY_LAYERS="+layer);
-            System.out.println(address);
-            byte[] bytes = SvrUtils.getRequest(address.toString());
+            byte[] bytes = restTemplate.getForObject(address.toString(), byte[].class);
             JSONObject pointSite = (JSONObject)JSONObject.parse(bytes, 0, bytes.length, StandardCharsets.UTF_8.newDecoder(), new com.alibaba.fastjson.parser.Feature[0]);
             result.add(pointSite);
         }

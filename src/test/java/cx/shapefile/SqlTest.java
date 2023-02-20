@@ -1,9 +1,9 @@
 package cx.shapefile;
 
-import com.alibaba.fastjson.JSONObject;
 import cx.shapefile.Mapper.PointsMapper;
+import cx.shapefile.Mapper.PostGisDBMapper;
 import cx.shapefile.pojo.Points;
-import cx.shapefile.utils.cx.GisUtils;
+import cx.shapefile.pojo.Ynzd;
 import org.geotools.data.DataUtilities;
 import org.geotools.data.collection.ListFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -19,7 +19,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.StringWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +29,71 @@ public class SqlTest
 
     @Autowired
     PointsMapper pointsMapper;
+
+    @Autowired
+    PostGisDBMapper postGisDBMapper;
+
+    @Test
+    void searchGeom() throws Exception
+    {
+        List<Ynzd> dlzxxes = postGisDBMapper.queryGeom();
+        System.out.println(dlzxxes.toString());
+    }
+
+    @Test
+    void searchAll() throws Exception
+    {
+        List<Ynzd> ynzds = postGisDBMapper.queryGeom();
+        GeometryFactory geometryFactory = JTSFactoryFinder.getGeometryFactory();
+        WKTReader reader = new WKTReader(geometryFactory);
+        SimpleFeatureType TYPE = DataUtilities.createType("Link",
+                "geometry:Geometry," +
+                        "county:String," +
+                        "township:String," +
+                        "village:String,"+
+                        "village_group:String,"+
+                        "land_no_survey:String,"+
+                        "land_type_name1:String,"+
+                        "land_type_code:String,"+
+                        "spot_area:String,"+
+                        "confer_area:String,"+
+                        "area_unit:String,"+
+                        "owner:String"
+        );
+        List<SimpleFeature> features = new ArrayList<>();
+        SimpleFeatureBuilder featureBuilder = new SimpleFeatureBuilder(TYPE);
+        for (Ynzd ynzd : ynzds)
+        {
+            Geometry ynzdGeom = reader.read(ynzd.getGeom());
+            featureBuilder.add(ynzdGeom);
+            featureBuilder.add(ynzd.getCounty());
+            featureBuilder.add(ynzd.getTownship());
+            featureBuilder.add(ynzd.getVillage());
+            featureBuilder.add(ynzd.getVillage_group());
+            featureBuilder.add(ynzd.getLand_no_survey());
+            featureBuilder.add(ynzd.getLand_type_name1());
+            featureBuilder.add(ynzd.getLand_type_code());
+            featureBuilder.add(ynzd.getSpot_area());
+            featureBuilder.add(ynzd.getConfer_area());
+            featureBuilder.add(ynzd.getArea_unit());
+            featureBuilder.add(ynzd.getOwner());
+            SimpleFeature simpleFeature = featureBuilder.buildFeature(ynzd.getId());
+            features.add(simpleFeature);
+        }
+        StringWriter writer = new StringWriter();
+        FeatureJSON fjson = new FeatureJSON();
+        SimpleFeatureCollection collection = new ListFeatureCollection(TYPE, features);
+        fjson.writeFeatureCollection(collection, writer);
+
+        File file = new File("C:\\Users\\stong\\Desktop\\temp\\pgsqltext.txt");
+        OutputStreamWriter fw = new OutputStreamWriter(new FileOutputStream(file),"UTF-8");
+        BufferedWriter bw = new BufferedWriter(fw);
+        bw.write(String.valueOf(writer));
+        bw.flush();
+        bw.close();
+        fw.close();
+    }
+
 
     @Test
     void getAll() throws Exception
